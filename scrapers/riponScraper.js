@@ -1,123 +1,168 @@
 // Imports
 const cheerio = require("cheerio");
-const axios = require("axios");
 
 // @ desc Scrapes Ripon Leader for article URLS.
 // @ returns array of article URLS to scrape.
 const getRiponURLS = async () => {
-  // set to return (used set to remove duplicate URLS)
-  const articleURLS = new Set();
+  console.log("Scraping The Ripon Press");
+
+  // An array to populate with thumbnail objects.
+  let thumbnailArr = [];
+
+  // Creating sets to populate with unique URLS.
+  const edArticleURLS = new Set();
+  const localNewsArticleURLS = new Set();
+  const highSchoolArticleURLS = new Set();
 
   // Main URLS to scrape.
-  const newsURL = "https://www.riponpress.com/news/";
-  const sportsURL = "https://www.riponpress.com/sports/";
+  const edURL = "https://www.riponpress.com/news/education/";
+  const localNewsURL = "https://www.riponpress.com/news/business/";
+  const highSchoolURL = "https://www.riponpress.com/sports/prep/";
 
   // Getting DOM strings to create cheerio objects out of.
-  const newsPromise = axios.get(newsURL).then((res) => res.data);
-  const sportsPromise = axios.get(sportsURL).then((res) => res.data);
+  const edPromise = fetch(edURL).then((res) => res.text());
+  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+  const highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
+  console.log("Created HTTP GET req Promise Objects");
 
-  const [newsDOM, sportsDOM] = await Promise.all([newsPromise, sportsPromise]);
+  // Waiting for all promise objects to resolve.
+  const [edDOM, localNewsDOM, highSchoolDOM] = await Promise.all([
+    edPromise,
+    localNewsPromise,
+    highSchoolPromise,
+  ]);
+  console.log("Resolved all HTTP GET req Promise Objects.");
 
   // Creating cheerio objects.
-  const $news = cheerio.load(newsDOM);
-  const $sports = cheerio.load(sportsDOM);
+  const $ed = cheerio.load(edDOM);
+  const $localNews = cheerio.load(localNewsDOM);
+  const $highSchool = cheerio.load(highSchoolDOM);
 
-  $news("a.tnt-asset-link").each((i, element) => {
-    const anchor = $news(element);
-    articleURLS.add("https://www.riponpress.com" + anchor.attr("href"));
-  });
+  // Populating Sets with URLS and thumbnailsArr with thumbnail objects.
+  getURLS($ed, thumbnailArr, edArticleURLS);
+  getURLS($localNews, thumbnailArr, localNewsArticleURLS);
+  getURLS($highSchool, thumbnailArr, highSchoolArticleURLS);
 
-  $sports("a.tnt-asset-link").each((i, element) => {
-    const anchor = $sports(element);
-    articleURLS.add("https://www.riponpress.com" + anchor.attr("href"));
-  });
-  //console.log(articleURLS);
+  // Populating GLOBAL object of subcategorized URLS.
+  subcategoriesObj["EDUCATION"] = Array.from(edArticleURLS);
+  subcategoriesObj["LOCAL NEWS"] = Array.from(localNewsArticleURLS);
+  subcategoriesObj["HIGH SCHOOL SPORTS"] = Array.from(highSchoolArticleURLS);
 
-  //turn set into an array
-  return Array.from(articleURLS);
+  // Creating an array of unique Article URLS to return.
+  let articleURLS = [
+    ...edArticleURLS,
+    ...localNewsArticleURLS,
+    ...highSchoolArticleURLS,
+  ];
+  return [articleURLS, thumbnailArr];
 };
 // @ desc Scrapes Ripon News
 // @ returns updated Scraped data object with new scraped data.
 const riponScraper = async () => {
-  // Getting Ripon article urls to iterate over and scrape.
-  const urls = await getRiponURLS();
+  const articles = [];
 
-  // Getting an array of promises to pass to Promise.all(). Resolved when each url is turned into DOM string.
-  const URLpromises = urls.map(async (url) => {
-    try {
-      const response = await axios.get(url);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching ${url}: ${error.message}`);
-      return null; // Skip this article
-    }
+  // Getting Ripon article urls and turning them into DOM strings.
+  const [urls, thumbnails] = await getRiponURLS();
+  const URLpromises = urls.map((url) => {
+    return fetch(url).then((res) => res.text());
   });
+  const articleDOMS = await Promise.all(URLpromises);
+  console.log("Got all Article URL DOMS, Scraping Data...");
 
-  // Awaiting all promises to be fulfilled before continuing to the next part of the code.
-  const articleDOMS = (await Promise.all(URLpromises)).filter(Boolean);
-
-  // Creating array to push objects to.
-  const arr = new Array();
   // Iterating over each Ripon article DOM to scrape data.
   for (let i = 0; i < articleDOMS.length; i++) {
+    // Article object to populate and push to articles array.
+    const objectToPush = {};
+
+    // Main Cheerio Object.
     const $ = cheerio.load(articleDOMS[i]);
+
+    // Getting the Image.
+    const currentImage = $('meta[property="og:image"]').attr("content");
+    const imageAlt = $('meta[name="twitter:image:alt"]').attr("content");
+    const image = { src: currentImage, alt: imageAlt };
+
+    // Getting paragraphs.
+    const paragraphs = [];
+    $("div.asset-content")
+      .find("p")
+      .each((i, element) => {
+        const p = $(element).text();
+        if (p !== "") {
+          paragraphs.push(p.trim());
+        }
+      });
+
+    // Getting more Data with one-liners.
     const date = $("time.tnt-date").text().trim();
+    const author = $("a.tnt-user-name:eq(1)").text().trim();
+    const source = urls[i];
+    const publisher = "Ripon Journal";
+    const heading = $("h1.headline").text().trim();
+    const subHeading = $("h2.subhead").text().trim() || null;
+    const thumbnail = thumbnails[i];
+    const [category, subcategory] = getCategories(source);
 
-    if (date === date) {
-      // const object to push
-      const objectToPush = {};
+    // Saving data to an object to push to articles array.
+    objectToPush["source"] = source;
+    objectToPush["publisher"] = publisher;
+    objectToPush["category"] = category;
+    objectToPush["subcategory"] = subcategory;
+    objectToPush["heading"] = heading;
+    objectToPush["subHeading"] = subHeading;
+    objectToPush["author"] = author;
+    objectToPush["date"] = date;
+    objectToPush["thumbnail"] = thumbnail.src
+      ? thumbnail
+      : image.src
+      ? image
+      : null;
+    objectToPush["image"] = image.src ? image : null;
+    objectToPush["paragraphs"] = paragraphs;
 
-      // Creating main cheerio object.
-
-      const author = $("a.tnt-user-name:eq(1)").text().trim();
-
-      // Getting needed data I could get that wasn't filled with props.
-      const source = urls[i];
-      const publisher = "Ripon Journal";
-      const heading = $("h1.headline").text();
-      const subHeading = $("h2.subhead").text().trim() || null;
-      const paragraphs = [];
-      $("div.asset-content")
-        .children()
-        .each((i, element) => {
-          const p = $(element).text().trim();
-          if (p !== "") {
-            paragraphs.push(p);
-          }
-        });
-
-      //console.log(source);
-
-      //console.log(publisher);
-      //console.log(heading);
-      //console.log(subHeading);
-      //console.log(paragraphs);
-
-      // Saving data to an object I will push to the array of objects.
-      objectToPush["source"] = source;
-      objectToPush["publisher"] = publisher;
-      objectToPush["heading"] = heading.trim();
-      objectToPush["subHeading"] = subHeading;
-      objectToPush["author"] = author;
-      objectToPush["date"] = date;
-
-      // Getting the image data and saving that to objectToPush
-
-      const image = {};
-      const currentImage = $('meta[property="og:image"]').attr("content");
-      const imageAlt = $('meta[name="twitter:image:alt"]').attr("content");
-
-      image["url"] = currentImage;
-      image["alt"] = imageAlt;
-
-      objectToPush["img"] = image;
-
-      arr.push(objectToPush);
+    if (objectToPush.paragraphs.length != 0) {
+      articles.push(objectToPush);
     }
   }
-  console.log(arr);
-  return arr;
+
+  return articles;
 };
 
+// Populates URL Sets and thumbnails array according to cheerio obj passed in.
+function getURLS($, thumbnailArr, toAdd) {
+  // Gets URLS and thumbnails for articles.
+  $("a.tnt-asset-link").each((i, element) => {
+    const anchor = $(element);
+    if (anchor.attr("href") !== "{{url}}") {
+      toAdd.add("https://www.riponpress.com" + anchor.attr("href"));
+    }
+    let image = {
+      src: anchor.find("img").attr("srcset"),
+      alt: anchor.find("img").attr("alt"),
+    };
+    thumbnailArr.push(image);
+  });
+}
+
+// @ Desc gets categories from url.
+// @ Returns category string.
+function getCategories(source) {
+  // Getting Categories.
+  let category = "";
+  let subcategory = "";
+
+  // Control flow for categorizing using global object.
+  if (subcategoriesObj["EDUCATION"].includes(source)) {
+    category = "NEWS";
+    subcategory = "EDUCATION";
+  } else if (subcategoriesObj["LOCAL NEWS"].includes(source)) {
+    category = "NEWS";
+    subcategory = "LOCAL NEWS";
+  } else {
+    category = "SPORTS";
+    subcategory = "HIGH SCHOOL SPORTS";
+  }
+  return [category, subcategory];
+}
 
 module.exports = { riponScraper };

@@ -1,38 +1,89 @@
 const cheerio = require("cheerio");
-const axios = require("axios");
+
+// GLOBAL VARIABLE///
+const subcategoriesObj = {};
 
 // @ desc Scrapes The Turlock Journal for article URLS.
 // @ returns array of article URLS to scrape.
 const getTurlockURLS = async () => {
-  // Arrays to return.
-  const articleURLS = [];
-  const thumbnails = [];
+  console.log("Scraping The Turlock Journal");
 
-  // Main URLS to scrape.
-  const newsURL = "https://www.turlockjournal.com/news/";
-  const sportsURL = "https://www.turlockjournal.com/sports/";
+  // Arrays to return.
+  const thumbnailArr = [];
+
+  // Creating sets to populate with unique URLS
+  const crimeArticleURLS = new Set();
+  const govArticleURLS = new Set();
+  const edArticleURLS = new Set();
+  const localNewsArticleURLS = new Set();
+  const localSportsArticleURLS = new Set();
+  const highSchoolSportsArticleURLS = new Set();
+
+  // URLS to scrape.
+  const crimeURLS = "https://www.turlockjournal.com/news/crime";
+  const govURLS = "https://www.turlockjournal.com/news/government";
+  const edURLS = "https://www.turlockjournal.com/news/education";
+  const localNewsURLS = "https://www.turlockjournal.com/news/local";
+  const localSportsURLS = "https://www.turlockjournal.com/sports/community";
+  const highSchoolURLS =
+    "https://www.turlockjournal.com/news/high-school-sports";
 
   // Getting DOM strings to create cheerio objects out of.
-  const newsPromise = axios.get(newsURL).then((res) => res.data);
-  const sportsPromise = axios.get(sportsURL).then((res) => res.data);
+  const crimePromise = fetch(crimeURLS).then((res) => res.text());
+  const govPromise = fetch(govURLS).then((res) => res.text());
+  const edPromise = fetch(edURLS).then((res) => res.text());
+  const localNewsPromise = fetch(localNewsURLS).then((res) => res.text());
+  const localSportsPromise = fetch(localSportsURLS).then((res) => res.text());
+  const highSchoolPromise = fetch(highSchoolURLS).then((res) => res.text());
+  console.log("Created HTTP GET req promise Objects.");
 
-  const [newsDOM, sportsDOM] = await Promise.all([newsPromise, sportsPromise]);
-  const articleDOMS = newsDOM.concat(sportsDOM);
+  const [crimeDOM, govDOM, edDOM, localNewsDOM, localSportsDOM, highSchoolDOM] =
+    await Promise.all([
+      crimePromise,
+      govPromise,
+      edPromise,
+      localNewsPromise,
+      localSportsPromise,
+      highSchoolPromise,
+    ]);
+  console.log("Resolved HTTP GET req promise objects.");
 
   // Creating cheerio objects out of DOM strings.
-  const $ = cheerio.load(articleDOMS);
+  const $crime = cheerio.load(crimeDOM);
+  const $gov = cheerio.load(govDOM);
+  const $ed = cheerio.load(edDOM);
+  const $localNews = cheerio.load(localNewsDOM);
+  const $localSports = cheerio.load(localSportsDOM);
+  const $highSchoolSports = cheerio.load(highSchoolDOM);
 
-  // Gets URLS and thumbnails for articles.
-  $("a.anvil-images__image-container").each((i, element) => {
-    const anchor = $(element);
-    articleURLS.push(anchor.attr("href"));
-    const $thumbnail = anchor.find("img.anvil-images__image--main-article");
-    const { src, alt } = $thumbnail.attr();
-    const thumbnail = { src, alt };
-    thumbnails.push(thumbnail);
-  });
+  // Populating Sets with URLS, and populating thumbnailArr.
+  getURLS($crime, thumbnailArr, crimeArticleURLS);
+  getURLS($gov, thumbnailArr, govArticleURLS);
+  getURLS($ed, thumbnailArr, edArticleURLS);
+  getURLS($localNews, thumbnailArr, localNewsArticleURLS);
+  getURLS($localSports, thumbnailArr, localSportsArticleURLS);
+  getURLS($highSchoolSports, thumbnailArr, highSchoolSportsArticleURLS);
 
-  return [articleURLS, thumbnails];
+  // Populating GLOBAL object of subcategorized URLS.
+  subcategoriesObj["CRIME"] = Array.from(crimeArticleURLS);
+  subcategoriesObj["GOVERNMENT"] = Array.from(govArticleURLS);
+  subcategoriesObj["EDUCATION"] = Array.from(edArticleURLS);
+  subcategoriesObj["LOCAL NEWS"] = Array.from(localNewsArticleURLS);
+  subcategoriesObj["HIGH SCHOOL SPORTS"] = Array.from(
+    highSchoolSportsArticleURLS
+  );
+  subcategoriesObj["LOCAL SPORTS"] = Array.from(localSportsArticleURLS);
+
+  // Array of unique article URLS to return.
+  let articleURLS = [
+    ...crimeArticleURLS,
+    ...govArticleURLS,
+    ...edArticleURLS,
+    ...localNewsArticleURLS,
+    ...localSportsArticleURLS,
+    ...highSchoolSportsArticleURLS,
+  ];
+  return [articleURLS, thumbnailArr];
 };
 
 // @ desc Scrapes The Turlock Journal
@@ -43,9 +94,10 @@ const turlockJournalScraper = async () => {
   // Getting an array of article DOM strings for cheerio.
   const [urls, thumbnails] = await getTurlockURLS();
   const URLpromises = urls.map((url) => {
-    return axios.get(url).then((res) => res.data);
+    return fetch(url).then((res) => res.text());
   });
   const articleDOMS = await Promise.all(URLpromises);
+  console.log("Got Article URL DOMS, Scraping Data...");
 
   // Iterating over each DOM in article DOM, and creating article object to push to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
@@ -86,14 +138,15 @@ const turlockJournalScraper = async () => {
     const author = jsonData.page_meta.author || paragraphs[0];
     const date = jsonData.page_meta.page_created_at_pretty;
     const image = { src: $image.attr("src"), alt: $image.attr("alt") };
+    const [category, subcategory] = getCategories(source);
 
     // Saving data to an object I will push to the array of objects.
     objectToPush["source"] = source;
     objectToPush["publisher"] = publisher;
     objectToPush["heading"] = heading.trim();
     objectToPush["subHeading"] = subHeading;
-    objectToPush["category"] = getCategory(urls[i]);
-    objectToPush["subcategory"] = null;
+    objectToPush["category"] = category;
+    objectToPush["subcategory"] = subcategory;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
     objectToPush["img"] = image;
@@ -105,16 +158,46 @@ const turlockJournalScraper = async () => {
   return articles;
 };
 
+// Populates URL Sets and thumbnails array according to cheerio obj passed in.
+function getURLS($, thumbnailArr, addTo) {
+  // Gets URLS and thumbnails for articles.
+  $("a.anvil-images__image-container").each((i, element) => {
+    const anchor = $(element);
+    addTo.add(anchor.attr("href"));
+    const $thumbnail = anchor.find("img.anvil-images__image--main-article");
+    const { src, alt } = $thumbnail.attr();
+    const thumbnail = { src, alt };
+    thumbnailArr.push(thumbnail);
+  });
+}
+
 // @ Desc gets categories from url.
 // @ Returns category string.
-function getCategory(url) {
-  let mainCategory = "";
-  if (url.includes("https://www.turlockjournal.com/news/")) {
-    mainCategory = "NEWS";
+function getCategories(source) {
+  // Getting Categories.
+  let category = "";
+  let subcategory = "";
+  if (subcategoriesObj["CRIME"].includes(source)) {
+    category = "NEWS";
+    subcategory = "CRIME";
+  } else if (subcategoriesObj["GOVERNMENT"].includes(source)) {
+    category = "NEWS";
+    subcategory = "GOVERNMENT";
+  } else if (subcategoriesObj["EDUCATION"].includes(source)) {
+    category = "NEWS";
+    subcategory = "EDUCATION";
+  } else if (subcategoriesObj["LOCAL NEWS"].includes(source)) {
+    category = "NEWS";
+    subcategory = "LOCAL NEWS";
+  } else if (subcategoriesObj["LOCAL SPORTS"].includes(source)) {
+    category = "SPORTS";
+    subcategory = "LOCAL SPORTS";
   } else {
-    mainCategory = "SPORTS";
+    category = "SPORTS";
+    subcategory = "HIGH SCHOOL SPORTS";
   }
-  return mainCategory;
+
+  return [category, subcategory];
 }
 
 module.exports = { turlockJournalScraper };

@@ -1,38 +1,98 @@
 const cheerio = require("cheerio");
-const axios = require("axios");
+
+// GLOBAL VARS FOR CATEGORIZING ARTICLES //
+subcategoriesObj = {};
 
 // @ Desc scrapes tracy press for article urls.
 const getTracyURLS = async () => {
-  // Creating arrays to populate and return
-  const articleURLS = [];
+  console.log("Scraping The Tracy Press");
 
-  // Main URLS to scrape.
-  const newsURL = "https://www.ttownmedia.com/tracy_press/news/";
-  const sportsURL = "https://www.ttownmedia.com/tracy_press/sports/";
+  // Creating sets to populate with unique URLS.
+  const crimeArticleURLS = new Set();
+  const govArticleURLS = new Set();
+  const edArticleURLS = new Set();
+  const localNewsArticleURLS = new Set();
+  const localSportsArticleURLS = new Set();
+  const highSchoolSportsArticleURLS = new Set();
+
+  // URLS to scrape.
+  const crimeNewsURL =
+    "https://www.ttownmedia.com/tracy_press/news/law_and_order/";
+  const govNewsURL =
+    "https://www.ttownmedia.com/tracy_press/news/election_coverage/";
+  const educationNewsURL =
+    "https://www.ttownmedia.com/tracy_press/news/schools/";
+  const localNewsURL = "https://www.ttownmedia.com/tracy_press/news/city/";
+  const localSportsURL =
+    "https://www.ttownmedia.com/tracy_press/sports/local_sports";
+  const highSchoolSportsURL =
+    "https://www.ttownmedia.com/tracy_press/sports/prep_sports";
 
   // Getting DOM strings to create cheerio objects out of.
-  const newsPromise = axios
-    .get(newsURL, { timeout: 15000 })
-    .then((res) => res.data);
-  const sportsPromise = axios
-    .get(sportsURL, { timeout: 15000 })
-    .then((res) => res.data);
-  const [newsDOM, sportsDOM] = await Promise.all([newsPromise, sportsPromise]);
-  const articleDOMS = newsDOM.concat(sportsDOM);
+  const crimePromise = fetch(crimeNewsURL).then((res) => res.text());
+  const govPromise = fetch(govNewsURL).then((res) => res.text());
+  const edPromise = fetch(educationNewsURL).then((res) => res.text());
+  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+  const localSportsPromise = fetch(localSportsURL).then((res) => res.text());
+  const highSchoolSportsPromise = fetch(highSchoolSportsURL).then((res) =>
+    res.text()
+  );
+  console.log("Creating HTTP req Promise Objects");
+
+  // Getting DOM string objects for each sub category.
+  const [
+    crimeDOM,
+    govDOM,
+    edDOM,
+    localNewsDOM,
+    highSchoolSportsDOM,
+    localSportsDOM,
+  ] = await Promise.all([
+    crimePromise,
+    govPromise,
+    edPromise,
+    localNewsPromise,
+    highSchoolSportsPromise,
+    localSportsPromise,
+  ]);
+  console.log("Resolved HTTP get Req promise Objects.");
 
   // Creating cheerio object out of DOM strings.
-  const $ = cheerio.load(articleDOMS);
+  const $crime = cheerio.load(crimeDOM);
+  const $gov = cheerio.load(govDOM);
+  const $ed = cheerio.load(edDOM);
+  const $localNews = cheerio.load(localNewsDOM);
+  const $highSchoolSports = cheerio.load(highSchoolSportsDOM);
+  const $localSports = cheerio.load(localSportsDOM);
 
-  // Getting URLS and thumbnails.
-  $("div.card-container")
-    .find("a.tnt-asset-link")
-    .each((i, element) => {
-      const $anchor = $(element);
-      const url = "https://ttownmedia.com" + $anchor.attr("href");
-      articleURLS.push(url);
-    });
-  // Returning array of unique URL articles.
-  return [...new Set(articleURLS)];
+  // Getting URLS.
+  getURLS($crime, crimeArticleURLS);
+  getURLS($gov, govArticleURLS);
+  getURLS($ed, edArticleURLS);
+  getURLS($localNews, localNewsArticleURLS);
+  getURLS($highSchoolSports, highSchoolSportsArticleURLS);
+  getURLS($localSports, localSportsArticleURLS);
+
+  // Populating GLOBAL object of subcategorized URLS.
+  subcategoriesObj["CRIME"] = Array.from(crimeArticleURLS);
+  subcategoriesObj["GOVERNMENT"] = Array.from(govArticleURLS);
+  subcategoriesObj["EDUCATION"] = Array.from(edArticleURLS);
+  subcategoriesObj["LOCAL NEWS"] = Array.from(localNewsArticleURLS);
+  subcategoriesObj["HIGH SCHOOL SPORTS"] = Array.from(
+    highSchoolSportsArticleURLS
+  );
+  subcategoriesObj["LOCAL SPORTS"] = Array.from(localSportsArticleURLS);
+
+  // Returning array of unique articles URLS.
+  let articleURLS = [
+    ...crimeArticleURLS,
+    ...govArticleURLS,
+    ...edArticleURLS,
+    ...localNewsArticleURLS,
+    ...highSchoolSportsArticleURLS,
+    ...localSportsArticleURLS,
+  ];
+  return articleURLS;
 };
 
 // @ desc Scrapes Oakdale Leader
@@ -43,16 +103,17 @@ const tracyPressScraper = async () => {
   // Getting an array of article DOM strings for cheerio.
   const urls = await getTracyURLS();
   const URLpromises = urls.map((url) => {
-    return axios.get(url, { timeout: 15000 }).then((res) => res.data);
+    return fetch(url)
+      .then((res) => res.text())
+      .catch((e) => `${e.message} Could not get ${url}`);
   });
   const articleDOMS = await Promise.all(URLpromises);
+  console.log("Got Article URL DOMS, Scraping Data...");
 
   // Iterating over urls, turning them to article objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
-    // Creating article object to push to article array.
+    // Creating article object and main cheerio object.
     const objectToPush = {};
-
-    // Creating main cheerio object.
     const $ = cheerio.load(articleDOMS[i]);
 
     // Getting author.
@@ -86,8 +147,11 @@ const tracyPressScraper = async () => {
         paragraphs.push(paragraph);
       });
 
-    // Getting more data, single-liners.
+    // Getting the source, category, and subcategory.
     const source = urls[i];
+    const [category, subcategory] = getCategories(source);
+
+    // Getting more data, single-liners.
     const publisher = "The Tracy Press";
     const heading = $("h1.headline").find("span").text().trim();
 
@@ -96,8 +160,8 @@ const tracyPressScraper = async () => {
     objectToPush["publisher"] = publisher;
     objectToPush["heading"] = heading;
     objectToPush["subHeading"] = null;
-    objectToPush["category"] = getCategories(urls[i]);
-    objectToPush["subcategory"] = null;
+    objectToPush["category"] = category;
+    objectToPush["subcategory"] = subcategory;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
     objectToPush["img"] = image.src ? image : null;
@@ -105,21 +169,51 @@ const tracyPressScraper = async () => {
     objectToPush["paragraphs"] = paragraphs;
 
     // Pushing object to articles array.
-    articles.push(objectToPush);
+    if (objectToPush.paragraphs.length != 0) {
+      articles.push(objectToPush);
+    }
   }
   return articles;
 };
 
-// @ Desc gets the article main category by checking url.
-// @ Returns string of main category.
-function getCategories(url) {
+function getCategories(source) {
+  // Getting Categories.
   let category = "";
-  if (url.includes("https://ttownmedia.com/tracy_press/news/")) {
+  let subcategory = "";
+  if (subcategoriesObj["CRIME"].includes(source)) {
     category = "NEWS";
+    subcategory = "CRIME";
+  } else if (subcategoriesObj["GOVERNMENT"].includes(source)) {
+    category = "NEWS";
+    subcategory = "GOVERNMENT";
+  } else if (subcategoriesObj["EDUCATION"].includes(source)) {
+    category = "NEWS";
+    subcategory = "EDUCATION";
+  } else if (subcategoriesObj["LOCAL NEWS"].includes(source)) {
+    category = "NEWS";
+    subcategory = "LOCAL NEWS";
+  } else if (subcategoriesObj["LOCAL SPORTS"].includes(source)) {
+    category = "SPORTS";
+    subcategory = "LOCAL SPORTS";
   } else {
     category = "SPORTS";
+    subcategory = "HIGH SCHOOL SPORTS";
   }
-  return category;
+
+  return [category, subcategory];
+}
+
+// Populates URL SETS based on cheerio object passed in.
+function getURLS($, addTo) {
+  $("div.card-container")
+    .find("a.tnt-asset-link")
+    .each((i, element) => {
+      const $anchor = $(element);
+      const url = $anchor.attr("href").includes("https://ttownmedia.com")
+        ? $anchor.attr("href")
+        : "https://www.ttownmedia.com" + $anchor.attr("href");
+      addTo.add(url);
+    });
 }
 
 module.exports = { tracyPressScraper };
