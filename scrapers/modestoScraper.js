@@ -131,9 +131,6 @@ const modestoBeeScraper = async (proxy = false) => {
 
   // Iterating over each article DOM, creating article object, and pushing it to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
-    if ((articleDOMS[i] = undefined)) {
-      continue;
-    }
     const articleObject = {};
 
     // Creating a main cheerio object out of current url.
@@ -149,7 +146,7 @@ const modestoBeeScraper = async (proxy = false) => {
       $("time.update-date").text() || $("time.publish-date").text() || null;
     let datetime;
     try {
-      datetime = moment($("time.datetime").text()).toDate();
+      datetime = moment($("time").attr("datetime")).toDate();
     } catch {
       datetime = null;
     }
