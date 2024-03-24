@@ -1,11 +1,12 @@
 const cheerio = require("cheerio");
+const { fetchWithProxy } = require("../proxyFetch");
 
 // Global variable for categorizing articles.
 subcategoriesObj = {};
 
 // @ desc Scrapes The Modesto Bee for Article URLS.
 // @ returns array of article URLS to scrape.
-const getModestoURLS = async () => {
+const getModestoURLS = async (proxy = false) => {
   console.log("Scraping The Modesto Bee");
 
   // Arrays to populate with URLS and thumbnails.
@@ -19,22 +20,35 @@ const getModestoURLS = async () => {
   const highSchoolArticleURLS = new Set();
 
   // URLS to scrape for article URLS
-  const crimeURL = "https://www.modbee.com/news/local/crime";
-  const govURL = "https://www.modbee.com/news/politics-government/election";
-  const edURL = "https://www.modbee.com/news/local/education";
-  const localNewsURL = "https://www.modbee.com/news/local";
+  const crimeURL = "http://www.modbee.com/news/local/crime";
+  const govURL = "http://www.modbee.com/news/politics-government/election";
+  const edURL = "http://www.modbee.com/news/local/education";
+  const localNewsURL = "http://www.modbee.com/news/local";
   //const localSportsURL = ModestoBee has no localSports subcategory.
-  const highSchoolURL = "https://www.modbee.com/sports/high-school";
+  const highSchoolURL = "http://www.modbee.com/sports/high-school";
 
-  // Getting DOM strings for each page.
-  const crimePromise = fetch(crimeURL).then((res) => res.text());
-  const govPromise = fetch(govURL).then((res) => res.text());
-  const edPromise = fetch(edURL).then((res) => res.text());
-  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-  const highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
-  console.log("Created HTTP GET req Promise Objects");
-
-  // Waiting for all promises to resolve.
+  // Variables to reasign depending on if using proxy.
+  let crimePromise;
+  let govPromise;
+  let edPromise;
+  let localNewsPromise;
+  let highSchoolPromise;
+  // Getting Category DOMS.
+  if (!proxy) {
+    console.log("Fetching Category DOMS");
+    crimePromise = fetch(crimeURL).then((res) => res.text());
+    govPromise = fetch(govURL).then((res) => res.text());
+    edPromise = fetch(edURL).then((res) => res.text());
+    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+    highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
+  } else {
+    console.log("Fetching Category DOMS with Proxy");
+    crimePromise = fetchWithProxy(crimeURL);
+    govPromise = fetchWithProxy(govURL);
+    edPromise = fetchWithProxy(edURL);
+    localNewsPromise = fetchWithProxy(localNewsURL);
+    highSchoolPromise = fetchWithProxy(highSchoolURL);
+  }
   const [crimeDOM, govDOM, edDOM, localNewsDOM, highSchoolDOM] =
     await Promise.all([
       crimePromise,
@@ -43,7 +57,7 @@ const getModestoURLS = async () => {
       localNewsPromise,
       highSchoolPromise,
     ]);
-  console.log("Resolved all HTTP GET req Promise Objects");
+  console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
   const $crime = cheerio.load(crimeDOM);
@@ -80,20 +94,45 @@ const getModestoURLS = async () => {
 
 // @ desc Scrapes The Modesto Bee
 // @ returns updated Scraped data object with new scraped data.
-const modestoBeeScraper = async () => {
+const modestoBeeScraper = async (proxy = false) => {
   // Creating an array to push articles into and return.
   const articles = [];
 
-  // Getting article URLS and turning them into DOM strings.
-  const [urls, thumbnails] = await getModestoURLS();
-  const urlPromises = urls.map((url) => {
-    return fetch(url).then((res) => res.text());
-  });
+  let urls;
+  let thumbnails;
+  // Getting article URLS
+  if (!proxy) {
+    const [resURLS, resThumbnails] = await getModestoURLS();
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  } else {
+    const [resURLS, resThumbnails] = await getModestoURLS(true);
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  }
+  console.log("Got all article URLS");
+
+  // Getting article DOMS
+  let urlPromises;
+  if (!proxy) {
+    console.log("Fetching article DOMS");
+    urlPromises = urls.map((url) => {
+      return fetch(url).then((res) => res.text());
+    });
+  } else {
+    console.log("Fetching article DOMS with proxy");
+    urlPromises = urls.map((url) => {
+      return fetchWithProxy(url);
+    });
+  }
   const articleDOMS = await Promise.all(urlPromises);
-  console.log("Got all Article URL DOMS, Scraping Data...");
+  console.log("Got all Article DOMS, Scraping data...");
 
   // Iterating over each article DOM, creating article object, and pushing it to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
+    if ((articleDOMS[i] = undefined)) {
+      continue;
+    }
     const articleObject = {};
 
     // Creating a main cheerio object out of current url.

@@ -1,10 +1,11 @@
 const cheerio = require("cheerio");
+const { fetchWithProxy } = require("../proxyFetch");
 
 // GLOBAL VARS FOR CATEGORIZING ARTICLES //
 subcategoriesObj = {};
 
 // @ Desc scrapes tracy press for article urls.
-const getTracyURLS = async () => {
+const getTracyURLS = async (proxy = false) => {
   console.log("Scraping The Tracy Press");
 
   // Creating sets to populate with unique URLS.
@@ -28,18 +29,34 @@ const getTracyURLS = async () => {
   const highSchoolSportsURL =
     "https://www.ttownmedia.com/tracy_press/sports/prep_sports";
 
-  // Getting DOM strings to create cheerio objects out of.
-  const crimePromise = fetch(crimeNewsURL).then((res) => res.text());
-  const govPromise = fetch(govNewsURL).then((res) => res.text());
-  const edPromise = fetch(educationNewsURL).then((res) => res.text());
-  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-  const localSportsPromise = fetch(localSportsURL).then((res) => res.text());
-  const highSchoolSportsPromise = fetch(highSchoolSportsURL).then((res) =>
-    res.text()
-  );
-  console.log("Creating HTTP req Promise Objects");
+  // Variables to reasign depending on if proxy is used.
+  let crimePromise;
+  let govPromise;
+  let edPromise;
+  let localNewsPromise;
+  let localSportsPromise;
+  let highSchoolSportsPromise;
 
-  // Getting DOM string objects for each sub category.
+  // Getting Category DOMS.
+  if (!proxy) {
+    console.log("Fetching Category DOMS");
+    crimePromise = fetch(crimeNewsURL).then((res) => res.text());
+    govPromise = fetch(govNewsURL).then((res) => res.text());
+    edPromise = fetch(educationNewsURL).then((res) => res.text());
+    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+    localSportsPromise = fetch(localSportsURL).then((res) => res.text());
+    highSchoolSportsPromise = fetch(highSchoolSportsURL).then((res) =>
+      res.text()
+    );
+  } else {
+    console.log("Fetching Category DOMS with Proxy");
+    crimePromise = fetchWithProxy(crimeNewsURL);
+    govPromise = fetchWithProxy(govNewsURL);
+    edPromise = fetchWithProxy(educationNewsURL);
+    localNewsPromise = fetchWithProxy(localNewsURL);
+    localSportsPromise = fetchWithProxy(localSportsURL);
+    highSchoolSportsPromise = fetchWithProxy(highSchoolSportsURL);
+  }
   const [
     crimeDOM,
     govDOM,
@@ -55,7 +72,7 @@ const getTracyURLS = async () => {
     highSchoolSportsPromise,
     localSportsPromise,
   ]);
-  console.log("Resolved HTTP get Req promise Objects.");
+  console.log("Got all Category DOMS");
 
   // Creating cheerio object out of DOM strings.
   const $crime = cheerio.load(crimeDOM);
@@ -97,18 +114,34 @@ const getTracyURLS = async () => {
 
 // @ desc Scrapes Oakdale Leader
 // @ returns updated Scraped data object with new scraped data.
-const tracyPressScraper = async () => {
+const tracyPressScraper = async (proxy = false) => {
   const articles = [];
 
-  // Getting an array of article DOM strings for cheerio.
-  const urls = await getTracyURLS();
-  const URLpromises = urls.map((url) => {
-    return fetch(url)
-      .then((res) => res.text())
-      .catch((e) => `${e.message} Could not get ${url}`);
-  });
+  // Getting article URLS.
+  let urls;
+  if (!proxy) {
+    urls = await getTracyURLS();
+  } else {
+    urls = await getTracyURLS(true);
+  }
+  console.log("Got all article URLS");
+
+  // Getting Article DOMS
+  let URLpromises;
+  if (!proxy) {
+    URLpromises = urls.map((url) => {
+      return fetch(url)
+        .then((res) => res.text())
+        .catch((e) => `${e.message} Could not get ${url}`);
+    });
+  } else {
+    URLpromises = urls.map((url) => {
+      return fetchWithProxy(url);
+    });
+  }
+
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got Article URL DOMS, Scraping Data...");
+  console.log("Got all article DOMS, Scraping Data...");
 
   // Iterating over urls, turning them to article objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {

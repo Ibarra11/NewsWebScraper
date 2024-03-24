@@ -1,11 +1,12 @@
 const cheerio = require("cheerio");
+const { fetchWithProxy } = require("../proxyFetch");
 
 // GLOBAL VARIABLE //
 const subcategoriesObj = {};
 
 // @ desc Scrapes The Riverbank News for Article URLS.
 // @ returns array of article URLS to scrape.
-const getRiverbankURLS = async () => {
+const getRiverbankURLS = async (proxy = false) => {
   console.log("Scraping The Riverbank News");
   // Arrays to return.
   const thumbnailArr = [];
@@ -28,16 +29,31 @@ const getRiverbankURLS = async () => {
   const highSchoolURL =
     "https://www.theriverbanknews.com/sports/high-school-sports/";
 
-  // Getting DOM strings to create cheerio objects out of.
-  const crimePromise = fetch(crimeURL).then((res) => res.text());
-  const govPromise = fetch(govURL).then((res) => res.text());
-  const edPromise = fetch(edURL).then((res) => res.text());
-  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-  const localSportsPromise = fetch(localSportsURL).then((res) => res.text());
-  const highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
-  console.log("Created HTTP GET req Promise Objects");
-
-  // Waiting for all promises to resolve.
+  // Variables to reasign depending on if Proxy is used.
+  let crimePromise;
+  let govPromise;
+  let edPromise;
+  let localNewsPromise;
+  let localSportsPromise;
+  let highSchoolPromise;
+  // Getting Category DOMS
+  if (!proxy) {
+    console.log("Fetching Category DOMS");
+    crimePromise = fetch(crimeURL).then((res) => res.text());
+    govPromise = fetch(govURL).then((res) => res.text());
+    edPromise = fetch(edURL).then((res) => res.text());
+    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+    localSportsPromise = fetch(localSportsURL).then((res) => res.text());
+    highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
+  } else {
+    console.log("Fetching Category DOMS with Proxy");
+    crimePromise = fetchWithProxy(crimeURL);
+    govPromise = fetchWithProxy(govURL);
+    edPromise = fetchWithProxy(edURL);
+    localNewsPromise = fetchWithProxy(localNewsURL);
+    localSportsPromise = fetchWithProxy(localSportsURL);
+    highSchoolPromise = fetchWithProxy(highSchoolURL);
+  }
   const [crimeDOM, govDOM, edDOM, localNewsDOM, localSportsDOM, highSchoolDOM] =
     await Promise.all([
       crimePromise,
@@ -47,7 +63,7 @@ const getRiverbankURLS = async () => {
       localSportsPromise,
       highSchoolPromise,
     ]);
-  console.log("Resolved all HTTP GET req Promise Objects");
+  console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
   const $crime = cheerio.load(crimeDOM);
@@ -87,16 +103,38 @@ const getRiverbankURLS = async () => {
 
 // @ desc Scrapes The Turlock Journal
 // @ returns updated Scraped data object with new scraped data.
-const riverbankNewsScraper = async () => {
+const riverbankNewsScraper = async (proxy = false) => {
   const articles = [];
 
-  // Getting turlock article urls, thumbnails, then turning urls into DOM strings.
-  const [urls, thumbnails] = await getRiverbankURLS();
-  const URLpromises = urls.map((url) => {
-    return fetch(url).then((res) => res.text());
-  });
+  // Getting article URLS
+  let urls;
+  let thumbnails;
+  if (!proxy) {
+    const [resURLS, resThumbnails] = await getRiverbankURLS();
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  } else {
+    const [resURLS, resThumbnails] = await getRiverbankURLS(true);
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  }
+  console.log("Got all article URLS");
+
+  // Getting article DOMS
+  let URLpromises;
+  if (!proxy) {
+    console.log("Getting article DOMS");
+    URLpromises = urls.map((url) => {
+      return fetch(url).then((res) => res.text());
+    });
+  } else {
+    console.log("Getting article DOMS with Proxy");
+    URLpromises = urls.map((url) => {
+      return fetchWithProxy(url);
+    });
+  }
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got article URL DOMS, Scraping Data...");
+  console.log("Got all article DOMS, Scraping Data...");
 
   // Iterating over DOM strings, turning them into objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {

@@ -1,11 +1,12 @@
 const cheerio = require("cheerio");
+const { fetchWithProxy } = require("../proxyFetch");
 
 // Global Variable //
 const subcategoriesObj = {};
 
 // @ desc Scrapes Oakdale Leader for article URLS.
 // @ returns URLS and Thumbnail objects.
-const getOakdaleURLS = async () => {
+const getOakdaleURLS = async (proxy = false) => {
   console.log("Scraping the Oakdale Leader");
 
   // Arrays to return.
@@ -25,16 +26,28 @@ const getOakdaleURLS = async () => {
   const localNewsURL = "https://www.oakdaleleader.com/news/local-news";
   const localSportsURL = "https://www.oakdaleleader.com/sports/local-sports-2";
 
-  // Getting DOM strings to create cheerio objects out of.
-  const crimePromise = fetch(crimeURL).then((res) => res.text());
-  const govPromise = fetch(govURL).then((res) => res.text());
-  const edPromise = fetch(edURL).then((res) => res.text());
-  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-  const localSportsPromise = fetch(localSportsURL).then((res) => res.text());
-  // NOTE: Oakdale Leader doesn't have High School Sports category.
-  console.log("Created HTTP GET req promise Objects.");
-
-  // Waiting untill all promise objects resolve.
+  // Variables to reasign depending on if using Proxy.
+  let crimePromise;
+  let govPromise;
+  let edPromise;
+  let localNewsPromise;
+  let localSportsPromise;
+  // Getting Category DOMS
+  if (!proxy) {
+    console.log("Fetching Category DOMS");
+    crimePromise = fetch(crimeURL).then((res) => res.text());
+    govPromise = fetch(govURL).then((res) => res.text());
+    edPromise = fetch(edURL).then((res) => res.text());
+    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+    localSportsPromise = fetch(localSportsURL).then((res) => res.text());
+  } else {
+    console.log("Fetching Category DOMS with Proxy");
+    crimePromise = fetchWithProxy(crimeURL);
+    govPromise = fetchWithProxy(govURL);
+    edPromise = fetchWithProxy(edURL);
+    localNewsPromise = fetchWithProxy(localNewsURL);
+    localSportsPromise = fetchWithProxy(localSportsURL);
+  }
   const [crimeDOM, govDOM, edDOM, localNewsDOM, localSportsDOM] =
     await Promise.all([
       crimePromise,
@@ -43,7 +56,7 @@ const getOakdaleURLS = async () => {
       localNewsPromise,
       localSportsPromise,
     ]);
-  console.log("Resolved all HTTP GET req promise Objects");
+  console.log("Got All Article Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
   const $crime = cheerio.load(crimeDOM);
@@ -80,16 +93,39 @@ const getOakdaleURLS = async () => {
 
 // @ desc Scrapes Oakdale Leader
 // @ returns updated Scraped data object with new scraped data.
-const oakdaleLeaderScraper = async () => {
+const oakdaleLeaderScraper = async (proxy = false) => {
   const articles = [];
 
-  // Getting an array of article DOM strings for cheerio.
-  const [urls, thumbnails] = await getOakdaleURLS();
-  const URLpromises = urls.map((url) => {
-    return fetch(url).then((res) => res.text());
-  });
+  // Getting article URLS.
+  let urls;
+  let thumbnails;
+  if (!proxy) {
+    const [resURLS, resThumbnails] = await getOakdaleURLS();
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  } else {
+    const [resURLS, resThumbnails] = await getOakdaleURLS(true);
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  }
+  console.log("Got all article URLS");
+
+  // Getting article DOMS
+  let URLpromises;
+  if (!proxy) {
+    console.log("Fetching article DOMS");
+    URLpromises = urls.map((url) => {
+      return fetch(url).then((res) => res.text());
+    });
+  } else {
+    console.log("Fetching article DOMS with Proxy");
+    URLpromises = urls.map((url) => {
+      return fetchWithProxy(url);
+    });
+  }
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got article URL DOMS, Scraping Data...");
+  console.log("Got all article DOMS, Scraping data...");
+
   // Iterating over each DOM in article DOM, and creating article object to push to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
     const objectToPush = {};

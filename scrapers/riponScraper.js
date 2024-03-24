@@ -1,9 +1,10 @@
 // Imports
 const cheerio = require("cheerio");
+const { fetchWithProxy } = require("../proxyFetch");
 
 // @ desc Scrapes Ripon Leader for article URLS.
 // @ returns array of article URLS to scrape.
-const getRiponURLS = async () => {
+const getRiponURLS = async (proxy = false) => {
   console.log("Scraping The Ripon Press");
 
   // An array to populate with thumbnail objects.
@@ -19,19 +20,28 @@ const getRiponURLS = async () => {
   const localNewsURL = "https://www.riponpress.com/news/business/";
   const highSchoolURL = "https://www.riponpress.com/sports/prep/";
 
-  // Getting DOM strings to create cheerio objects out of.
-  const edPromise = fetch(edURL).then((res) => res.text());
-  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-  const highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
-  console.log("Created HTTP GET req Promise Objects");
-
-  // Waiting for all promise objects to resolve.
+  // Variables to reasign depending on if Proxy is used.
+  let edPromise;
+  let localNewsPromise;
+  let highSchoolPromise;
+  // Getting Category DOM.
+  if (!proxy) {
+    console.log("Fetching Category DOMS");
+    edPromise = fetch(edURL).then((res) => res.text());
+    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+    highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
+  } else {
+    console.log("Fetching Category DOMS with Proxy");
+    edPromise = fetchWithProxy(edURL);
+    localNewsPromise = fetchWithProxy(localNewsURL);
+    highSchoolPromise = fetchWithProxy(highSchoolURL);
+  }
   const [edDOM, localNewsDOM, highSchoolDOM] = await Promise.all([
     edPromise,
     localNewsPromise,
     highSchoolPromise,
   ]);
-  console.log("Resolved all HTTP GET req Promise Objects.");
+  console.log("Got all Category DOMS");
 
   // Creating cheerio objects.
   const $ed = cheerio.load(edDOM);
@@ -58,16 +68,38 @@ const getRiponURLS = async () => {
 };
 // @ desc Scrapes Ripon News
 // @ returns updated Scraped data object with new scraped data.
-const riponScraper = async () => {
+const riponScraper = async (proxy = false) => {
   const articles = [];
 
-  // Getting Ripon article urls and turning them into DOM strings.
-  const [urls, thumbnails] = await getRiponURLS();
-  const URLpromises = urls.map((url) => {
-    return fetch(url).then((res) => res.text());
-  });
+  // Getting article URLS
+  let urls;
+  let thumbnails;
+  if (!proxy) {
+    const [resURLS, resThumbnails] = await getRiponURLS();
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  } else {
+    const [resURLS, resThumbnails] = await getRiponURLS(true);
+    urls = resURLS;
+    thumbnails = resThumbnails;
+  }
+  console.log("Got all article URLS");
+
+  // Getting article DOMS
+  let URLpromises;
+  if (!proxy) {
+    console.log("Fetching article DOMS");
+    URLpromises = urls.map((url) => {
+      return fetch(url).then((res) => res.text());
+    });
+  } else {
+    console.log("Fetching article DOMS with Proxy");
+    URLpromises = urls.map((url) => {
+      return fetchWithProxy(url);
+    });
+  }
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got all Article URL DOMS, Scraping Data...");
+  console.log("Got all Article DOMS, Scraping Data...");
 
   // Iterating over each Ripon article DOM to scrape data.
   for (let i = 0; i < articleDOMS.length; i++) {
