@@ -1,6 +1,7 @@
 // Imports
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
+const moment = require("moment");
 
 // @ desc Scrapes Ripon Leader for article URLS.
 // @ returns array of article URLS to scrape.
@@ -127,6 +128,7 @@ const riponScraper = async (proxy = false) => {
 
     // Getting more Data with one-liners.
     const date = $("time.tnt-date").text().trim();
+    const datetime = moment(date, "MMM D, YYYY").toDate();
     const author = $("a.tnt-user-name:eq(1)").text().trim();
     const source = urls[i];
     const publisher = "Ripon Journal";
@@ -144,6 +146,7 @@ const riponScraper = async (proxy = false) => {
     objectToPush["subHeading"] = subHeading;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
+    objectToPush["datetime"] = datetime;
     objectToPush["thumbnail"] = thumbnail.src
       ? thumbnail
       : image.src

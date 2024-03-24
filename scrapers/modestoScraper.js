@@ -1,5 +1,6 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
+const moment = require("moment");
 
 // Global variable for categorizing articles.
 subcategoriesObj = {};
@@ -146,6 +147,12 @@ const modestoBeeScraper = async (proxy = false) => {
     // Getting date.
     const date =
       $("time.update-date").text() || $("time.publish-date").text() || null;
+    let datetime;
+    try {
+      datetime = moment($("time.datetime").text()).toDate();
+    } catch {
+      datetime = null;
+    }
     const thumbnail = thumbnails[i];
 
     // Getting Image.
@@ -179,6 +186,7 @@ const modestoBeeScraper = async (proxy = false) => {
     articleObject["subcategory"] = subcategory;
     articleObject["author"] = author;
     articleObject["date"] = date;
+    articleObject["datetime"] = datetime;
     articleObject["image"] = image;
     articleObject["thumbnail"] = thumbnail;
     articleObject["paragraphs"] = paragraphs;

@@ -1,5 +1,6 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
+const moment = require("moment");
 
 // Global Variable //
 const subcategoriesObj = {};
@@ -165,6 +166,7 @@ const oakdaleLeaderScraper = async (proxy = false) => {
     const subHeading = $("div.anvil-article__subtitle").text().trim() || null;
     const author = jsonData.page_meta.author || paragraphs[0];
     const date = jsonData.page_meta.page_created_at_pretty;
+    const datetime = moment(date, "MMMM D, YYYY").toDate();
     const image = { src: $image.attr("src"), alt: $image.attr("alt") };
 
     // Saving data to an object I will push to the array of objects.
@@ -176,6 +178,7 @@ const oakdaleLeaderScraper = async (proxy = false) => {
     objectToPush["subcategory"] = subcategory;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
+    objectToPush["datetime"] = datetime;
     objectToPush["img"] = image;
     objectToPush["thumbnail"] = thumbnails[i];
     objectToPush["paragraphs"] = paragraphs;

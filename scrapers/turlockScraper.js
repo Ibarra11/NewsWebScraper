@@ -1,5 +1,6 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
+const moment = require("moment");
 
 // GLOBAL VARIABLE///
 const subcategoriesObj = {};
@@ -175,6 +176,7 @@ const turlockJournalScraper = async (proxy = false) => {
     const subHeading = $("div.anvil-article__subtitle").text().trim() || null;
     const author = jsonData.page_meta.author || paragraphs[0];
     const date = jsonData.page_meta.page_created_at_pretty;
+    const datetime = moment(date, "MMMM D, YYYY").toDate();
     const image = { src: $image.attr("src"), alt: $image.attr("alt") };
     const [category, subcategory] = getCategories(source);
 
@@ -187,6 +189,7 @@ const turlockJournalScraper = async (proxy = false) => {
     objectToPush["subcategory"] = subcategory;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
+    objectToPush["datetime"] = datetime;
     objectToPush["img"] = image;
     objectToPush["thumbnail"] = thumbnails[i];
     objectToPush["paragraphs"] = paragraphs;

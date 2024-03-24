@@ -1,5 +1,6 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
+const moment = require("moment");
 
 // GLOBAL VARS FOR CATEGORIZING ARTICLES //
 subcategoriesObj = {};
@@ -165,6 +166,18 @@ const tracyPressScraper = async (proxy = false) => {
       .find("time")
       .text()
       .trim();
+    let datetime;
+    try {
+      datetime = $("div.meta")
+        .find("span")
+        .find("ul")
+        .find("li.visible-print")
+        .find("time")
+        .attr("datetime");
+      datetime = moment(datetime).toDate();
+    } catch {
+      datetime = null;
+    }
 
     // Getting Image.
     const src = $("div.image").find("div").children().eq(2).attr("content");
@@ -197,6 +210,7 @@ const tracyPressScraper = async (proxy = false) => {
     objectToPush["subcategory"] = subcategory;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
+    objectToPush["datetime"] = datetime;
     objectToPush["img"] = image.src ? image : null;
     objectToPush["thumbnail"] = image.src ? image : null;
     objectToPush["paragraphs"] = paragraphs;
