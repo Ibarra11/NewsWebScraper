@@ -1,13 +1,19 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
 const moment = require("moment");
+const {
+  startSpinner,
+  stopSpinner,
+  smallFetchDelay,
+  fetchDelay,
+} = require("../delays.js");
 
 // Global variable for categorizing articles.
 subcategoriesObj = {};
 
 // @ desc Scrapes The Modesto Bee for Article URLS.
 // @ returns array of article URLS to scrape.
-const getModestoURLS = async (proxy = false) => {
+const getModestoURLS = async () => {
   console.log("Scraping The Modesto Bee");
 
   // Arrays to populate with URLS and thumbnails.
@@ -35,21 +41,14 @@ const getModestoURLS = async (proxy = false) => {
   let localNewsPromise;
   let highSchoolPromise;
   // Getting Category DOMS.
-  if (!proxy) {
-    console.log("Fetching Category DOMS");
-    crimePromise = fetch(crimeURL).then((res) => res.text());
-    govPromise = fetch(govURL).then((res) => res.text());
-    edPromise = fetch(edURL).then((res) => res.text());
-    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-    highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
-  } else {
-    console.log("Fetching Category DOMS with Proxy");
-    crimePromise = fetchWithProxy(crimeURL);
-    govPromise = fetchWithProxy(govURL);
-    edPromise = fetchWithProxy(edURL);
-    localNewsPromise = fetchWithProxy(localNewsURL);
-    highSchoolPromise = fetchWithProxy(highSchoolURL);
-  }
+  console.log(`Fetching Category DOMS with Proxy `);
+  startSpinner();
+  crimePromise = fetchWithProxy(crimeURL);
+  govPromise = fetchWithProxy(govURL);
+  edPromise = fetchWithProxy(edURL);
+  localNewsPromise = fetchWithProxy(localNewsURL);
+  highSchoolPromise = fetchWithProxy(highSchoolURL);
+
   const [crimeDOM, govDOM, edDOM, localNewsDOM, highSchoolDOM] =
     await Promise.all([
       crimePromise,
@@ -58,6 +57,7 @@ const getModestoURLS = async (proxy = false) => {
       localNewsPromise,
       highSchoolPromise,
     ]);
+  stopSpinner();
   console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
@@ -95,39 +95,29 @@ const getModestoURLS = async (proxy = false) => {
 
 // @ desc Scrapes The Modesto Bee
 // @ returns updated Scraped data object with new scraped data.
-const modestoBeeScraper = async (proxy = false) => {
+const modestoBeeScraper = async () => {
   // Creating an array to push articles into and return.
   const articles = [];
 
   let urls;
   let thumbnails;
   // Getting article URLS
-  if (!proxy) {
-    const [resURLS, resThumbnails] = await getModestoURLS();
-    urls = resURLS;
-    thumbnails = resThumbnails;
-  } else {
-    const [resURLS, resThumbnails] = await getModestoURLS(true);
-    urls = resURLS;
-    thumbnails = resThumbnails;
-  }
+  const [resURLS, resThumbnails] = await getModestoURLS(true);
+  urls = resURLS;
+  thumbnails = resThumbnails;
   console.log("Got all article URLS");
 
   // Getting article DOMS
   let urlPromises;
-  if (!proxy) {
-    console.log("Fetching article DOMS");
-    urlPromises = urls.map((url) => {
-      return fetch(url).then((res) => res.text());
-    });
-  } else {
-    console.log("Fetching article DOMS with proxy");
-    urlPromises = urls.map((url) => {
-      return fetchWithProxy(url);
-    });
-  }
+  console.log(`Fetching article DOMS with proxy `);
+  startSpinner();
+  urlPromises = urls.map((url) => {
+    return fetchWithProxy(url);
+  });
   const articleDOMS = await Promise.all(urlPromises);
-  console.log("Got all Article DOMS, Scraping data...");
+  stopSpinner();
+  console.log("Got all Article DOMS, Scraping data... ");
+  startSpinner();
 
   // Iterating over each article DOM, creating article object, and pushing it to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
@@ -188,12 +178,12 @@ const modestoBeeScraper = async (proxy = false) => {
     articleObject["thumbnail"] = thumbnail;
     articleObject["paragraphs"] = paragraphs;
 
-    console.log(articleObject);
     // Edge case: Some modesto articles had no title and were still being worked on.
     if (articleObject.heading) {
       articles.push(articleObject);
     }
   }
+  stopSpinner();
   // Returning articles array.
   return articles;
 };

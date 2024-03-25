@@ -1,6 +1,7 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
 const moment = require("moment");
+const { startSpinner, stopSpinner } = require("../delays");
 
 // GLOBAL VARIABLE //
 const subcategoriesObj = {};
@@ -38,23 +39,15 @@ const getRiverbankURLS = async (proxy = false) => {
   let localSportsPromise;
   let highSchoolPromise;
   // Getting Category DOMS
-  if (!proxy) {
-    console.log("Fetching Category DOMS");
-    crimePromise = fetch(crimeURL).then((res) => res.text());
-    govPromise = fetch(govURL).then((res) => res.text());
-    edPromise = fetch(edURL).then((res) => res.text());
-    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-    localSportsPromise = fetch(localSportsURL).then((res) => res.text());
-    highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
-  } else {
-    console.log("Fetching Category DOMS with Proxy");
-    crimePromise = fetchWithProxy(crimeURL);
-    govPromise = fetchWithProxy(govURL);
-    edPromise = fetchWithProxy(edURL);
-    localNewsPromise = fetchWithProxy(localNewsURL);
-    localSportsPromise = fetchWithProxy(localSportsURL);
-    highSchoolPromise = fetchWithProxy(highSchoolURL);
-  }
+
+  process.stdout.write("Fetching Category DOMS ");
+  startSpinner();
+  crimePromise = fetch(crimeURL).then((res) => res.text());
+  govPromise = fetch(govURL).then((res) => res.text());
+  edPromise = fetch(edURL).then((res) => res.text());
+  localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+  localSportsPromise = fetch(localSportsURL).then((res) => res.text());
+  highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
   const [crimeDOM, govDOM, edDOM, localNewsDOM, localSportsDOM, highSchoolDOM] =
     await Promise.all([
       crimePromise,
@@ -64,6 +57,7 @@ const getRiverbankURLS = async (proxy = false) => {
       localSportsPromise,
       highSchoolPromise,
     ]);
+  stopSpinner();
   console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
@@ -110,32 +104,22 @@ const riverbankNewsScraper = async (proxy = false) => {
   // Getting article URLS
   let urls;
   let thumbnails;
-  if (!proxy) {
-    const [resURLS, resThumbnails] = await getRiverbankURLS();
-    urls = resURLS;
-    thumbnails = resThumbnails;
-  } else {
-    const [resURLS, resThumbnails] = await getRiverbankURLS(true);
-    urls = resURLS;
-    thumbnails = resThumbnails;
-  }
+  const [resURLS, resThumbnails] = await getRiverbankURLS();
+  urls = resURLS;
+  thumbnails = resThumbnails;
   console.log("Got all article URLS");
 
   // Getting article DOMS
   let URLpromises;
-  if (!proxy) {
-    console.log("Getting article DOMS");
-    URLpromises = urls.map((url) => {
-      return fetch(url).then((res) => res.text());
-    });
-  } else {
-    console.log("Getting article DOMS with Proxy");
-    URLpromises = urls.map((url) => {
-      return fetchWithProxy(url);
-    });
-  }
+  console.log("Getting article DOMS ");
+  startSpinner();
+  URLpromises = urls.map((url) => {
+    return fetch(url).then((res) => res.text());
+  });
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got all article DOMS, Scraping Data...");
+  stopSpinner();
+  console.log("Got all article DOMS, Scraping Data... ");
+  startSpinner();
 
   // Iterating over DOM strings, turning them into objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
@@ -195,6 +179,7 @@ const riverbankNewsScraper = async (proxy = false) => {
 
     articles.push(objectToPush);
   }
+  stopSpinner();
   return articles;
 };
 

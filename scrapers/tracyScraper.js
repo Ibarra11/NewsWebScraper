@@ -2,6 +2,13 @@ const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
 const moment = require("moment");
 
+const {
+  startSpinner,
+  stopSpinner,
+  smallFetchDelay,
+  fetchDelay,
+} = require("../delays");
+
 // GLOBAL VARS FOR CATEGORIZING ARTICLES //
 subcategoriesObj = {};
 
@@ -39,25 +46,13 @@ const getTracyURLS = async (proxy = false) => {
   let highSchoolSportsPromise;
 
   // Getting Category DOMS.
-  if (!proxy) {
-    console.log("Fetching Category DOMS");
-    crimePromise = fetch(crimeNewsURL).then((res) => res.text());
-    govPromise = fetch(govNewsURL).then((res) => res.text());
-    edPromise = fetch(educationNewsURL).then((res) => res.text());
-    localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-    localSportsPromise = fetch(localSportsURL).then((res) => res.text());
-    highSchoolSportsPromise = fetch(highSchoolSportsURL).then((res) =>
-      res.text()
-    );
-  } else {
-    console.log("Fetching Category DOMS with Proxy");
-    crimePromise = fetchWithProxy(crimeNewsURL);
-    govPromise = fetchWithProxy(govNewsURL);
-    edPromise = fetchWithProxy(educationNewsURL);
-    localNewsPromise = fetchWithProxy(localNewsURL);
-    localSportsPromise = fetchWithProxy(localSportsURL);
-    highSchoolSportsPromise = fetchWithProxy(highSchoolSportsURL);
-  }
+  console.log("Fetching Category DOMS ");
+  crimePromise = fetchDelay(crimeNewsURL);
+  govPromise = fetchDelay(govNewsURL);
+  edPromise = fetchDelay(educationNewsURL);
+  localNewsPromise = fetchDelay(localNewsURL);
+  localSportsPromise = fetchDelay(localSportsURL);
+  highSchoolSportsPromise = fetchDelay(highSchoolSportsURL);
   const [
     crimeDOM,
     govDOM,
@@ -120,30 +115,23 @@ const tracyPressScraper = async (proxy = false) => {
 
   // Getting article URLS.
   let urls;
-  if (!proxy) {
-    urls = await getTracyURLS();
-  } else {
-    urls = await getTracyURLS(true);
-  }
+  urls = await getTracyURLS();
+
   console.log("Got all article URLS");
 
   // Getting Article DOMS
   let URLpromises;
-  if (!proxy) {
-    URLpromises = urls.map((url) => {
-      return fetch(url)
-        .then((res) => res.text())
-        .catch((e) => `${e.message} Could not get ${url}`);
-    });
-  } else {
-    URLpromises = urls.map((url) => {
-      return fetchWithProxy(url);
-    });
-  }
-
+  console.log("Getting article DOMS ");
+  startSpinner();
+  URLpromises = urls.map((url) => {
+    return fetch(url)
+      .then((res) => res.text())
+      .catch((e) => `${e.message} Could not get ${url}`);
+  });
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got all article DOMS, Scraping Data...");
-
+  stopSpinner();
+  console.log("Got all article DOMS, Scraping Data... ");
+  startSpinner();
   // Iterating over urls, turning them to article objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
     // Creating article object and main cheerio object.
@@ -215,12 +203,12 @@ const tracyPressScraper = async (proxy = false) => {
     objectToPush["thumbnail"] = image.src ? image : null;
     objectToPush["paragraphs"] = paragraphs;
 
-    console.log(objectToPush);
     // Pushing object to articles array.
     if (objectToPush.paragraphs.length != 0) {
       articles.push(objectToPush);
     }
   }
+  stopSpinner();
   return articles;
 };
 

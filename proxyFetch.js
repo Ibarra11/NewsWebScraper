@@ -1,6 +1,8 @@
 require("dotenv").config();
 const { HttpsProxyAgent } = require("https-proxy-agent");
 
+const { smallFetchDelay, fetchDelay } = require("./delays");
+
 // Array of proxy objects
 const proxies = [
   { ip: process.env.PROXY_IP_1, port: process.env.PORT_1 },
@@ -93,6 +95,8 @@ function getRandomIndex() {
 // Function to make fetch request using random proxy.
 async function fetchWithProxy(url) {
   try {
+    const delay = Math.floor(Math.random() * 10) + 1;
+    await new Promise((resolve) => setTimeout(resolve, delay * 1000));
     const index = getRandomIndex();
 
     const ip = proxies[index].ip;
@@ -106,6 +110,7 @@ async function fetchWithProxy(url) {
       agent: proxyAgent,
       method: "GET",
       cache: "no-cache",
+      signal: AbortSignal.timeout(15000),
     });
     return await response.text();
   } catch (e) {
