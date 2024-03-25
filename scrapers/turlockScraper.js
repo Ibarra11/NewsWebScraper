@@ -40,7 +40,7 @@ const getTurlockURLS = async (proxy = false) => {
   let highSchoolPromise;
 
   // Getting Category DOMS
-  process.stdout.write("Fetching Category DOMS ");
+  console.log("Fetching Category DOMS ");
   startSpinner();
   crimePromise = fetch(crimeURLS).then((res) => res.text());
   govPromise = fetch(govURLS).then((res) => res.text());

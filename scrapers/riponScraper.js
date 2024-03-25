@@ -79,7 +79,7 @@ const riponScraper = async (proxy = false) => {
 
   // Getting article DOMS
   let URLpromises;
-  console.log("Fetching article DOMS ");
+  console.log("Getting article DOMS ");
   startSpinner();
   URLpromises = urls.map((url) => {
     return fetch(url).then((res) => res.text());

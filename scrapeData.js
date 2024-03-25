@@ -134,7 +134,7 @@ async function scrapeData(city = "all", proxy = false) {
           `Scraped ${riverbankArr.length} articles from The Riverbank News\n`
         );
       } catch (e) {
-        console.log(`Failed to scrape Oakdale. Error ${e.message}\n`);
+        console.log(`Failed to scrape Riverbank. Error ${e.message}\n`);
       }
       try {
         proxy
@@ -145,7 +145,7 @@ async function scrapeData(city = "all", proxy = false) {
           `Scraped ${riponArr.length} articles from The Ripon Press\n`
         );
       } catch (e) {
-        console.log(`Failed to scrape Oakdale. Error ${e.message}\n`);
+        console.log(`Failed to scrape Ripon. Error ${e.message}\n`);
       }
 
       console.log(`Scraped a Total of ${articles.length} Articles. \n`);

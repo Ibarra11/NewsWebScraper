@@ -47,6 +47,7 @@ const getTracyURLS = async (proxy = false) => {
 
   // Getting Category DOMS.
   console.log("Fetching Category DOMS ");
+  startSpinner();
   crimePromise = fetchDelay(crimeNewsURL);
   govPromise = fetchDelay(govNewsURL);
   edPromise = fetchDelay(educationNewsURL);
@@ -68,6 +69,7 @@ const getTracyURLS = async (proxy = false) => {
     highSchoolSportsPromise,
     localSportsPromise,
   ]);
+  stopSpinner();
   console.log("Got all Category DOMS");
 
   // Creating cheerio object out of DOM strings.
@@ -121,7 +123,7 @@ const tracyPressScraper = async (proxy = false) => {
 
   // Getting Article DOMS
   let URLpromises;
-  console.log("Getting article DOMS ");
+  console.log("Fetching article DOMS ");
   startSpinner();
   URLpromises = urls.map((url) => {
     return fetch(url)

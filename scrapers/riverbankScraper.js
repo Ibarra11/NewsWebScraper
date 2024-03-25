@@ -40,7 +40,7 @@ const getRiverbankURLS = async (proxy = false) => {
   let highSchoolPromise;
   // Getting Category DOMS
 
-  process.stdout.write("Fetching Category DOMS ");
+  console.log("Fetching Category DOMS ");
   startSpinner();
   crimePromise = fetch(crimeURL).then((res) => res.text());
   govPromise = fetch(govURL).then((res) => res.text());
