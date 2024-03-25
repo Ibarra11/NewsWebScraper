@@ -36,4 +36,21 @@ const fetchDelay = async (url) => {
   return fetch(url).then((response) => response.text());
 };
 
-module.exports = { startSpinner, stopSpinner, smallFetchDelay, fetchDelay };
+const fetchDelayTracy = async (url) => {
+  const delay = Math.floor(Math.random() * 6) + 1;
+  await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+  return fetch(url, { signal: AbortSignal.timeout(10000) }).then((response) => {
+    if (typeof response == "string") {
+      return response;
+    }
+    return response.text();
+  });
+};
+
+module.exports = {
+  startSpinner,
+  stopSpinner,
+  smallFetchDelay,
+  fetchDelay,
+  fetchDelayTracy,
+};

@@ -1,5 +1,5 @@
 const cheerio = require("cheerio");
-const { fetchWithProxy } = require("../proxyFetch");
+const { fetchWithProxy, fetchWithProxyTracy } = require("../proxyFetch");
 const moment = require("moment");
 
 const {
@@ -7,6 +7,7 @@ const {
   stopSpinner,
   smallFetchDelay,
   fetchDelay,
+  fetchDelayTracy,
 } = require("../delays");
 
 // GLOBAL VARS FOR CATEGORIZING ARTICLES //
@@ -48,12 +49,12 @@ const getTracyURLS = async (proxy = false) => {
   // Getting Category DOMS.
   console.log("Fetching Category DOMS ");
   startSpinner();
-  crimePromise = fetchDelay(crimeNewsURL);
-  govPromise = fetchDelay(govNewsURL);
-  edPromise = fetchDelay(educationNewsURL);
-  localNewsPromise = fetchDelay(localNewsURL);
-  localSportsPromise = fetchDelay(localSportsURL);
-  highSchoolSportsPromise = fetchDelay(highSchoolSportsURL);
+  crimePromise = fetchWithProxyTracy(crimeNewsURL);
+  govPromise = fetchWithProxyTracy(govNewsURL);
+  edPromise = fetchWithProxyTracy(educationNewsURL);
+  localNewsPromise = fetchWithProxyTracy(localNewsURL);
+  localSportsPromise = fetchWithProxyTracy(localSportsURL);
+  highSchoolSportsPromise = fetchWithProxyTracy(highSchoolSportsURL);
   const [
     crimeDOM,
     govDOM,
@@ -107,7 +108,9 @@ const getTracyURLS = async (proxy = false) => {
     ...highSchoolSportsArticleURLS,
     ...localSportsArticleURLS,
   ];
-  return articleURLS;
+  let uniqueURLS = new Set(articleURLS);
+  let uniqueURLSArray = Array.from(uniqueURLS);
+  return uniqueURLSArray;
 };
 
 // @ desc Scrapes Oakdale Leader
@@ -126,9 +129,7 @@ const tracyPressScraper = async (proxy = false) => {
   console.log("Fetching article DOMS ");
   startSpinner();
   URLpromises = urls.map((url) => {
-    return fetchDelay(url)
-      .then((res) => res.text())
-      .catch((e) => `${e.message} Could not get ${url}`);
+    return fetchWithProxyTracy(url);
   });
   const articleDOMS = await Promise.all(URLpromises);
   stopSpinner();
@@ -175,7 +176,8 @@ const tracyPressScraper = async (proxy = false) => {
     const image = { src, alt };
 
     // Getting paragraphs.
-    const paragraphs = [];
+    let paragraphs = [];
+
     $("div.asset-content")
       .find("p")
       .each((i, element) => {
@@ -209,6 +211,7 @@ const tracyPressScraper = async (proxy = false) => {
     if (objectToPush.paragraphs.length != 0) {
       articles.push(objectToPush);
     }
+    articles.push(objectToPush);
   }
   stopSpinner();
   return articles;

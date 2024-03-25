@@ -118,4 +118,33 @@ async function fetchWithProxy(url) {
   }
 }
 
-module.exports = { fetchWithProxy };
+// Function to make fetch request using random proxy.
+async function fetchWithProxyTracy(url) {
+  try {
+    const delay = Math.floor(Math.random() * 10) + 1;
+    await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+    const index = getRandomIndex();
+
+    const ip = proxies[index].ip;
+    const port = proxies[index].port;
+    const header = headers[index];
+
+    const proxyAgent = new HttpsProxyAgent(`https://${ip}:${port}`);
+
+    const response = await fetch(url, {
+      headers: header,
+      agent: proxyAgent,
+      method: "GET",
+      cache: "no-cache",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (typeof response == "string") {
+      return response;
+    }
+    return response.text();
+  } catch (e) {
+    console.error("Proxy Request  Failed:", e);
+  }
+}
+
+module.exports = { fetchWithProxy, fetchWithProxyTracy };
