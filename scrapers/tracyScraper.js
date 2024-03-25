@@ -126,7 +126,7 @@ const tracyPressScraper = async (proxy = false) => {
   console.log("Fetching article DOMS ");
   startSpinner();
   URLpromises = urls.map((url) => {
-    return fetch(url)
+    return fetchDelay(url)
       .then((res) => res.text())
       .catch((e) => `${e.message} Could not get ${url}`);
   });
