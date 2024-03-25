@@ -215,6 +215,7 @@ const tracyPressScraper = async (proxy = false) => {
     objectToPush["thumbnail"] = image.src ? image : null;
     objectToPush["paragraphs"] = paragraphs;
 
+    console.log(objectToPush);
     // Pushing object to articles array.
     if (objectToPush.paragraphs.length != 0) {
       articles.push(objectToPush);

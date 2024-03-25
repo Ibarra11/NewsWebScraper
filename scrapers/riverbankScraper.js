@@ -176,7 +176,7 @@ const riverbankNewsScraper = async (proxy = false) => {
     const subHeading = $("div.anvil-article__subtitle").text().trim() || null;
     const author = jsonData.page_meta.author || paragraphs[0];
     const date = jsonData.page_meta.page_created_at_pretty;
-    const datetime = moment(date, "MMMM D, YYYY").toDate();
+    const datetime = moment(jsonData.page_created_at).toDate();
     const image = { src: $image.attr("src"), alt: $image.attr("alt") };
 
     // Saving data to an object I will push to the array of objects.

@@ -188,6 +188,7 @@ const modestoBeeScraper = async (proxy = false) => {
     articleObject["thumbnail"] = thumbnail;
     articleObject["paragraphs"] = paragraphs;
 
+    console.log(articleObject);
     // Edge case: Some modesto articles had no title and were still being worked on.
     if (articleObject.heading) {
       articles.push(articleObject);

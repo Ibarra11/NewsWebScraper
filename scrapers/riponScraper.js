@@ -128,10 +128,10 @@ const riponScraper = async (proxy = false) => {
 
     // Getting more Data with one-liners.
     const date = $("time.tnt-date").text().trim();
-    const datetime = moment(date, "MMM D, YYYY").toDate();
+    const datetime = moment($("time.tnt-date").attr("datetime")).toDate();
     const author = $("a.tnt-user-name:eq(1)").text().trim();
     const source = urls[i];
-    const publisher = "Ripon Journal";
+    const publisher = "The Ripon Press";
     const heading = $("h1.headline").text().trim();
     const subHeading = $("h2.subhead").text().trim() || null;
     const thumbnail = thumbnails[i];
