@@ -49,12 +49,12 @@ const getTracyURLS = async (proxy = false) => {
   // Getting Category DOMS.
   console.log("Fetching Category DOMS ");
   startSpinner();
-  crimePromise = fetchWithProxyTracy(crimeNewsURL);
-  govPromise = fetchWithProxyTracy(govNewsURL);
-  edPromise = fetchWithProxyTracy(educationNewsURL);
-  localNewsPromise = fetchWithProxyTracy(localNewsURL);
-  localSportsPromise = fetchWithProxyTracy(localSportsURL);
-  highSchoolSportsPromise = fetchWithProxyTracy(highSchoolSportsURL);
+  crimePromise = fetchDelay(crimeNewsURL);
+  govPromise = fetchDelay(govNewsURL);
+  edPromise = fetchDelay(educationNewsURL);
+  localNewsPromise = fetchDelay(localNewsURL);
+  localSportsPromise = fetchDelay(localSportsURL);
+  highSchoolSportsPromise = fetchDelay(highSchoolSportsURL);
   const [
     crimeDOM,
     govDOM,

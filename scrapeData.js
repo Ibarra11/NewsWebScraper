@@ -161,6 +161,6 @@ async function scrapeData(city = "all", proxy = false) {
 }
 
 // Updates Scraped Data object and will write to JSON file.
-scrapeData("tracy");
+scrapeData();
 
 module.exports = { scrapeData };
