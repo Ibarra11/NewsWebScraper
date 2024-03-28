@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv/config");
 const { HttpsProxyAgent } = require("https-proxy-agent");
 
 const { smallFetchDelay, fetchDelay } = require("./delays");
