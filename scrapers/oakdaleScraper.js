@@ -37,7 +37,7 @@ const getOakdaleURLS = async (proxy = false) => {
   let localSportsPromise;
   // Getting Category DOMS
   console.log("Fetching Category DOMS ");
-  startSpinner();
+
   crimePromise = fetch(crimeURL).then((res) => res.text());
   govPromise = fetch(govURL).then((res) => res.text());
   edPromise = fetch(edURL).then((res) => res.text());
@@ -103,7 +103,7 @@ const oakdaleLeaderScraper = async (proxy = false) => {
   // Getting article DOMS
   let URLpromises;
   console.log("Getting article DOMS ");
-  startSpinner();
+=
   URLpromises = urls.map((url) => {
     return fetch(url).then((res) => res.text());
   });
@@ -111,7 +111,7 @@ const oakdaleLeaderScraper = async (proxy = false) => {
   const articleDOMS = await Promise.all(URLpromises);
   stopSpinner();
   console.log("Got all article DOMS, Scraping data... ");
-  startSpinner();
+  =
 
   // Iterating over each DOM in article DOM, and creating article object to push to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
