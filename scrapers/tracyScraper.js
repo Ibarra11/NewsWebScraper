@@ -2,13 +2,7 @@ const cheerio = require("cheerio");
 const { fetchWithProxy, fetchWithProxyTracy } = require("../proxyFetch");
 const moment = require("moment");
 
-const {
-  startSpinner,
-  stopSpinner,
-  smallFetchDelay,
-  fetchDelay,
-  fetchDelayTracy,
-} = require("../delays");
+const { smallFetchDelay, fetchDelay, fetchDelayTracy } = require("../delays");
 
 // GLOBAL VARS FOR CATEGORIZING ARTICLES //
 subcategoriesObj = {};
@@ -48,7 +42,7 @@ const getTracyURLS = async (proxy = false) => {
 
   // Getting Category DOMS.
   console.log("Fetching Category DOMS ");
-  startSpinner();
+
   crimePromise = fetchDelay(crimeNewsURL);
   govPromise = fetchDelay(govNewsURL);
   edPromise = fetchDelay(educationNewsURL);
@@ -70,7 +64,7 @@ const getTracyURLS = async (proxy = false) => {
     highSchoolSportsPromise,
     localSportsPromise,
   ]);
-  stopSpinner();
+
   console.log("Got all Category DOMS");
 
   // Creating cheerio object out of DOM strings.
@@ -127,14 +121,14 @@ const tracyPressScraper = async (proxy = false) => {
   // Getting Article DOMS
   let URLpromises;
   console.log("Fetching article DOMS ");
-  startSpinner();
+
   URLpromises = urls.map((url) => {
     return fetchWithProxyTracy(url);
   });
   const articleDOMS = await Promise.all(URLpromises);
-  stopSpinner();
+
   console.log("Got all article DOMS, Scraping Data... ");
-  startSpinner();
+
   // Iterating over urls, turning them to article objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
     // Creating article object and main cheerio object.
@@ -212,7 +206,7 @@ const tracyPressScraper = async (proxy = false) => {
       articles.push(objectToPush);
     }
   }
-  stopSpinner();
+
   return articles;
 };
 
