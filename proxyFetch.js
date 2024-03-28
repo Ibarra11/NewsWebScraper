@@ -3,6 +3,8 @@ const { HttpsProxyAgent } = require("https-proxy-agent");
 
 const { smallFetchDelay, fetchDelay } = require("./delays");
 
+console.log(process.env);
+
 // Array of proxy objects
 const proxies = [
   { ip: process.env.PROXY_IP_1, port: process.env.PORT_1 },
