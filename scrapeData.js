@@ -26,7 +26,7 @@ async function scrapeData(city = "all", proxy = false) {
         `Scraped ${articles.length} articles from The Turlock Journal`
       );
       await writeFile(
-        path.join(process.cwd(), "articles.json"),
+        path.join(process.cwd(), "public", "articles.json"),
         JSON.stringify(articles)
       );
       break;
@@ -151,7 +151,7 @@ async function scrapeData(city = "all", proxy = false) {
       console.log(`Scraped a Total of ${articles.length} Articles. \n`);
 
       await writeFile(
-        path.join(process.cwd(), "articles.json"),
+        path.join(process.cwd(), "public", "articles.json"),
         JSON.stringify(articles)
       );
       break;
