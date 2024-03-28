@@ -48,8 +48,6 @@ const fetchDelayTracy = async (url) => {
 };
 
 module.exports = {
-  startSpinner,
-  stopSpinner,
   smallFetchDelay,
   fetchDelay,
   fetchDelayTracy,

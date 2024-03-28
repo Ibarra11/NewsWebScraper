@@ -52,7 +52,7 @@ const getModestoURLS = async () => {
       localNewsPromise,
       highSchoolPromise,
     ]);
-  stopSpinner();
+
   console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
@@ -110,7 +110,7 @@ const modestoBeeScraper = async () => {
     return fetchWithProxy(url);
   });
   const articleDOMS = await Promise.all(urlPromises);
-  stopSpinner();
+
   console.log("Got all Article DOMS, Scraping data... ");
 
   // Iterating over each article DOM, creating article object, and pushing it to articles array.
@@ -177,7 +177,7 @@ const modestoBeeScraper = async () => {
       articles.push(articleObject);
     }
   }
-  stopSpinner();
+
   // Returning articles array.
   return articles;
 };

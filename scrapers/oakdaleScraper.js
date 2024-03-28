@@ -2,8 +2,6 @@ const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
 const moment = require("moment");
 
-const { startSpinner, stopSpinner } = require("../delays");
-
 // Global Variable //
 const subcategoriesObj = {};
 
@@ -51,7 +49,7 @@ const getOakdaleURLS = async (proxy = false) => {
       localNewsPromise,
       localSportsPromise,
     ]);
-  stopSpinner();
+
   console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
@@ -103,15 +101,14 @@ const oakdaleLeaderScraper = async (proxy = false) => {
   // Getting article DOMS
   let URLpromises;
   console.log("Getting article DOMS ");
-=
+
   URLpromises = urls.map((url) => {
     return fetch(url).then((res) => res.text());
   });
 
   const articleDOMS = await Promise.all(URLpromises);
-  stopSpinner();
+
   console.log("Got all article DOMS, Scraping data... ");
-  =
 
   // Iterating over each DOM in article DOM, and creating article object to push to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
@@ -171,7 +168,7 @@ const oakdaleLeaderScraper = async (proxy = false) => {
 
     articles.push(objectToPush);
   }
-  stopSpinner();
+
   return articles;
 };
 

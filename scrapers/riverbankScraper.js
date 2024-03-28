@@ -1,7 +1,6 @@
 const cheerio = require("cheerio");
 const { fetchWithProxy } = require("../proxyFetch");
 const moment = require("moment");
-const { startSpinner, stopSpinner } = require("../delays");
 
 // GLOBAL VARIABLE //
 const subcategoriesObj = {};
@@ -41,7 +40,7 @@ const getRiverbankURLS = async (proxy = false) => {
   // Getting Category DOMS
 
   console.log("Fetching Category DOMS ");
-  startSpinner();
+
   crimePromise = fetch(crimeURL).then((res) => res.text());
   govPromise = fetch(govURL).then((res) => res.text());
   edPromise = fetch(edURL).then((res) => res.text());
@@ -57,7 +56,7 @@ const getRiverbankURLS = async (proxy = false) => {
       localSportsPromise,
       highSchoolPromise,
     ]);
-  stopSpinner();
+
   console.log("Got all Category DOMS");
 
   // Creating cheerio objects out of DOM strings.
@@ -112,14 +111,13 @@ const riverbankNewsScraper = async (proxy = false) => {
   // Getting article DOMS
   let URLpromises;
   console.log("Getting article DOMS ");
-  startSpinner();
+
   URLpromises = urls.map((url) => {
     return fetch(url).then((res) => res.text());
   });
   const articleDOMS = await Promise.all(URLpromises);
-  stopSpinner();
+
   console.log("Got all article DOMS, Scraping Data... ");
-  startSpinner();
 
   // Iterating over DOM strings, turning them into objects, and pushing them to articles array.
   for (let i = 0; i < articleDOMS.length; i++) {
@@ -179,7 +177,7 @@ const riverbankNewsScraper = async (proxy = false) => {
 
     articles.push(objectToPush);
   }
-  stopSpinner();
+
   return articles;
 };
 
