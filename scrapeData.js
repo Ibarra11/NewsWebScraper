@@ -13,13 +13,15 @@ const { riponScraper } = require("./scrapers/riponScraper");
 //// FUNCTIONS ////
 // @ desc Scrapes city data or all cities if all is passed as arg.
 // @ returns an array of objects where each object represents an article with the data we need as properties.
-async function scrapeData(city = "all") {
+async function scrapeData(city = "all", proxy = false) {
   console.log("\n");
   let articles = [];
   console.time();
   switch (city) {
     case "turlock":
-      articles = await turlockJournalScraper();
+      proxy
+        ? (articles = await turlockJournalScraper(true))
+        : (articles = await turlockJournalScraper());
       console.log(
         `Scraped ${articles.length} articles from The Turlock Journal`
       );
@@ -29,7 +31,9 @@ async function scrapeData(city = "all") {
       );
       break;
     case "modesto":
-      articles = await modestoBeeScraper();
+      proxy
+        ? (articles = await modestoBeeScraper(true))
+        : (articles = await modestoBeeScraper());
       console.log(`Scraped ${articles.length} articles from The Modesto Bee`);
       await writeFile(
         path.join(process.cwd(), "articles.json"),
@@ -37,7 +41,9 @@ async function scrapeData(city = "all") {
       );
       break;
     case "oakdale":
-      articles = await oakdaleLeaderScraper();
+      proxy
+        ? (articles = await oakdaleLeaderScraper(true))
+        : (articles = await oakdaleLeaderScraper());
       console.log(
         `Scraped ${articles.length} articles from The Oakdale Leader`
       );
@@ -47,7 +53,9 @@ async function scrapeData(city = "all") {
       );
       break;
     case "riverbank":
-      articles = await riverbankNewsScraper();
+      proxy
+        ? (articles = await riverbankNewsScraper(true))
+        : (articles = await riverbankNewsScraper());
       console.log(`Scraped ${articles.length} articles from Riverbank News`);
       await writeFile(
         path.join(process.cwd(), "articles.json"),
@@ -55,7 +63,9 @@ async function scrapeData(city = "all") {
       );
       break;
     case "tracy":
-      articles = await tracyPressScraper();
+      proxy
+        ? (articles = await tracyPressScraper(true))
+        : (articles = await tracyPressScraper());
       console.log(`Scraped ${articles.length} articles from Tracy Press`);
       await writeFile(
         path.join(process.cwd(), "articles.json"),
@@ -63,7 +73,9 @@ async function scrapeData(city = "all") {
       );
       break;
     case "ripon":
-      articles = await riponScraper();
+      proxy
+        ? (articles = await riponScraper(true))
+        : (articles = await riponScraper());
       console.log(`Scraped ${articles.length} articles from Ripon Press`);
       await writeFile(
         path.join(process.cwd(), "articles.json"),
@@ -72,25 +84,9 @@ async function scrapeData(city = "all") {
       break;
     case "all":
       try {
-        tracyArr = await tracyPressScraper();
-        articles = [...articles, ...tracyArr];
-        console.log(
-          `Scraped ${tracyArr.length} articles from The Tracy Press\n`
-        );
-      } catch (e) {
-        console.log(`Failed to scrape Tracy. Error ${e.message}\n`);
-      }
-      try {
-        turlockArr = await turlockJournalScraper();
-        articles = [...articles, ...turlockArr];
-        console.log(
-          `Scraped ${turlockArr.length} articles from The Turlock Journal\n`
-        );
-      } catch (e) {
-        console.log(`Failed to scrape Turlock. Error ${e.message}\n`);
-      }
-      try {
-        modestoArr = await modestoBeeScraper();
+        proxy
+          ? (modestoArr = await modestoBeeScraper(true))
+          : (modestoArr = await modestoBeeScraper());
         articles = [...articles, ...modestoArr];
         console.log(
           `Scraped ${modestoArr.length} articles from The Modesto Bee\n`
@@ -99,29 +95,57 @@ async function scrapeData(city = "all") {
         console.log(`Failed to scrape Modesto. Error: ${e.message}\n`);
       }
       try {
-        oakdaleArr = await oakdaleLeaderScraper();
+        proxy
+          ? (tracyArr = await tracyPressScraper(true))
+          : (tracyArr = await tracyPressScraper());
+        articles = [...articles, ...tracyArr];
+        console.log(
+          `Scraped ${tracyArr.length} articles from The Tracy Press\n`
+        );
+      } catch (e) {
+        console.log(`Failed to scrape Tracy. Error ${e.message}\n`);
+      }
+      try {
+        proxy
+          ? (turlockArr = await turlockJournalScraper(true))
+          : (turlockArr = await turlockJournalScraper());
+        articles = [...articles, ...turlockArr];
+        console.log(
+          `Scraped ${turlockArr.length} articles from The Turlock Journal\n`
+        );
+      } catch (e) {
+        console.log(`Failed to scrape Turlock. Error ${e.message}\n`);
+      }
+      try {
+        proxy
+          ? (oakdaleArr = await oakdaleLeaderScraper(true))
+          : (oakdaleArr = await oakdaleLeaderScraper());
         articles = [...articles, ...oakdaleArr];
         console.log(`Scraped ${oakdaleArr.length} from The Oakdale Leader\n`);
       } catch (e) {
         console.log(`Failed to scrape Oakdale. Error ${e.message}\n`);
       }
       try {
-        riverbankArr = await riverbankNewsScraper();
+        proxy
+          ? (riverbankArr = await riverbankNewsScraper(true))
+          : (riverbankArr = await riverbankNewsScraper());
         articles = [...articles, ...riverbankArr];
         console.log(
           `Scraped ${riverbankArr.length} articles from The Riverbank News\n`
         );
       } catch (e) {
-        console.log(`Failed to scrape Oakdale. Error ${e.message}\n`);
+        console.log(`Failed to scrape Riverbank. Error ${e.message}\n`);
       }
       try {
-        riponArr = await riponScraper();
+        proxy
+          ? (riponArr = await riponScraper(true))
+          : (riponArr = await riponScraper());
         articles = [...articles, ...riponArr];
         console.log(
           `Scraped ${riponArr.length} articles from The Ripon Press\n`
         );
       } catch (e) {
-        console.log(`Failed to scrape Oakdale. Error ${e.message}\n`);
+        console.log(`Failed to scrape Ripon. Error ${e.message}\n`);
       }
 
       console.log(`Scraped a Total of ${articles.length} Articles. \n`);
@@ -137,6 +161,6 @@ async function scrapeData(city = "all") {
 }
 
 // Updates Scraped Data object and will write to JSON file.
-scrapeData("ripon");
+scrapeData();
 
 module.exports = { scrapeData };

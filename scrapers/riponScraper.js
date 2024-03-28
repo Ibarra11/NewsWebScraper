@@ -1,9 +1,12 @@
 // Imports
 const cheerio = require("cheerio");
+const { fetchWithProxy } = require("../proxyFetch");
+const moment = require("moment");
+const { startSpinner, stopSpinner } = require("../delays");
 
 // @ desc Scrapes Ripon Leader for article URLS.
 // @ returns array of article URLS to scrape.
-const getRiponURLS = async () => {
+const getRiponURLS = async (proxy = false) => {
   console.log("Scraping The Ripon Press");
 
   // An array to populate with thumbnail objects.
@@ -19,19 +22,24 @@ const getRiponURLS = async () => {
   const localNewsURL = "https://www.riponpress.com/news/business/";
   const highSchoolURL = "https://www.riponpress.com/sports/prep/";
 
-  // Getting DOM strings to create cheerio objects out of.
-  const edPromise = fetch(edURL).then((res) => res.text());
-  const localNewsPromise = fetch(localNewsURL).then((res) => res.text());
-  const highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
-  console.log("Created HTTP GET req Promise Objects");
+  // Variables to reasign depending on if Proxy is used.
+  let edPromise;
+  let localNewsPromise;
+  let highSchoolPromise;
+  // Getting Category DOM.
 
-  // Waiting for all promise objects to resolve.
+  console.log("Fetching Category DOMS ");
+  startSpinner();
+  edPromise = fetch(edURL).then((res) => res.text());
+  localNewsPromise = fetch(localNewsURL).then((res) => res.text());
+  highSchoolPromise = fetch(highSchoolURL).then((res) => res.text());
   const [edDOM, localNewsDOM, highSchoolDOM] = await Promise.all([
     edPromise,
     localNewsPromise,
     highSchoolPromise,
   ]);
-  console.log("Resolved all HTTP GET req Promise Objects.");
+  stopSpinner();
+  console.log("Got all Category DOMS");
 
   // Creating cheerio objects.
   const $ed = cheerio.load(edDOM);
@@ -58,16 +66,28 @@ const getRiponURLS = async () => {
 };
 // @ desc Scrapes Ripon News
 // @ returns updated Scraped data object with new scraped data.
-const riponScraper = async () => {
+const riponScraper = async (proxy = false) => {
   const articles = [];
 
-  // Getting Ripon article urls and turning them into DOM strings.
-  const [urls, thumbnails] = await getRiponURLS();
-  const URLpromises = urls.map((url) => {
+  // Getting article URLS
+  let urls;
+  let thumbnails;
+  const [resURLS, resThumbnails] = await getRiponURLS();
+  urls = resURLS;
+  thumbnails = resThumbnails;
+  console.log("Got all article URLS");
+
+  // Getting article DOMS
+  let URLpromises;
+  console.log("Getting article DOMS ");
+  startSpinner();
+  URLpromises = urls.map((url) => {
     return fetch(url).then((res) => res.text());
   });
   const articleDOMS = await Promise.all(URLpromises);
-  console.log("Got all Article URL DOMS, Scraping Data...");
+  stopSpinner();
+  console.log("Got all Article DOMS, Scraping Data... ");
+  startSpinner();
 
   // Iterating over each Ripon article DOM to scrape data.
   for (let i = 0; i < articleDOMS.length; i++) {
@@ -95,9 +115,10 @@ const riponScraper = async () => {
 
     // Getting more Data with one-liners.
     const date = $("time.tnt-date").text().trim();
+    const datetime = moment($("time.tnt-date").attr("datetime")).toDate();
     const author = $("a.tnt-user-name:eq(1)").text().trim();
     const source = urls[i];
-    const publisher = "Ripon Journal";
+    const publisher = "The Ripon Press";
     const heading = $("h1.headline").text().trim();
     const subHeading = $("h2.subhead").text().trim() || null;
     const thumbnail = thumbnails[i];
@@ -112,6 +133,7 @@ const riponScraper = async () => {
     objectToPush["subHeading"] = subHeading;
     objectToPush["author"] = author;
     objectToPush["date"] = date;
+    objectToPush["datetime"] = datetime;
     objectToPush["thumbnail"] = thumbnail.src
       ? thumbnail
       : image.src
@@ -124,7 +146,7 @@ const riponScraper = async () => {
       articles.push(objectToPush);
     }
   }
-
+  stopSpinner();
   return articles;
 };
 
